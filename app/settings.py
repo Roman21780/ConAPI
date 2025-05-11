@@ -124,7 +124,7 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
 STATIC_URL = 'static/'
-STATICFILES_DIRS = [os.path.join(BASE_DIR, 'wb_api/static')]
+STATICFILES_DIRS = [os.path.join(BASE_DIR, 'wb_api/static'),]
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
@@ -163,5 +163,5 @@ INTERNAL_IPS = [
     '127.0.0.1',
 ]
 
-WB_API_URL = "https://dev.wildberries.ru/api"
+WB_API_URL = 'https://suppliers-api.wildberries.ru'
 WB_API_TOKEN = "eyJhbGciOiJFUzI1NiIsImtpZCI6IjIwMjUwNDE3djEiLCJ0eXAiOiJKV1QifQ.eyJlbnQiOjEsImV4cCI6MTc2MTg5MzI5MywiaWQiOiIwMTk2OGQyZC04NjI0LTcxNGEtOTQ2OC1mODNkZDY1MDJiNmYiLCJpaWQiOjY0OTU3NDM1LCJvaWQiOjEzNDkyNzEsInMiOjAsInNpZCI6ImUxY2QzMmU4LWQwYTYtNDFiOC04MzkyLTQ0OGEzOTk3ODVjMiIsInQiOnRydWUsInVpZCI6NjQ5NTc0MzV9.AlVassO3PuDQtV7A-OrZitAN0chGrqonW_DIlux0D3ral4neInndIkX-Id_MAO2AHfpkwta97dRRAyg0a-82DA"

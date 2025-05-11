@@ -1,45 +1,35 @@
-from django.shortcuts import render
-
-# Create your views here.
-
-from django.views import View
-from .client import WildberriesClient
-import json
+from django.views.generic import TemplateView
+from wb_api.client import WBOrdersClient, WBProductsClient, WBCategoriesClient
 
 
-class DashboardView(View):
+class DashboardView(TemplateView):
     template_name = 'wb_api/dashboard.html'
 
-    def get(self, request):
-        client = WildberriesClient()
-        response = client.get_prds(filter={"limit": 10})
-
-        products = response.data.get('items', []) if response.success else []
-
-        context = {
-            'products': products,
-            'products_json': json.dumps(products, ensure_ascii=False)
-        }
-        return render(request, self.template_name, context)
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        client = WBProductsClient()
+        response = client.get_prds(filter={"limit": 10})  # Изменили на get_prds
+        context['products'] = response.data if response.success else []
+        return context
 
 
-class OrdersView(View):
+class OrdersView(TemplateView):
     template_name = 'wb_api/orders.html'
 
-    def get(self, request):
-        client = WildberriesClient()
-        response = client.get_orders(filter={"limit": 10})
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        client = WBOrdersClient()
+        response = client.get_orders()  # Этот метод существует
+        context['orders'] = response.data if response.success else []
+        return context
 
-        orders = response.data.get('items', []) if response.success else []
-        return render(request, self.template_name, {'orders': orders})
 
-
-class CategoriesView(View):
+class CategoriesView(TemplateView):
     template_name = 'wb_api/categories.html'
 
-    def get(self, request):
-        client = WildberriesClient()
-        response = client.get_categories()
-
-        categories = response.data.get('items', []) if response.success else []
-        return render(request, self.template_name, {'categories': categories})
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        client = WBCategoriesClient()
+        response = client.get_categories()  # Этот метод существует
+        context['categories'] = response.data if response.success else []
+        return context

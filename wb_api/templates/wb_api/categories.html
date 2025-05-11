@@ -1,0 +1,122 @@
+{% extends "wb_api/base.html" %}
+{% load static %}
+
+{% block title %}Категории Wildberries{% endblock %}
+
+{% block content %}
+<section class="categories-section">
+    <h2>Категории товаров</h2>
+
+    {% if error %}
+    <div class="alert alert-danger">
+        Ошибка при загрузке данных: {{ error }}
+        <br>Попробуйте обновить страницу или обратитесь к администратору.
+    </div>
+    {% endif %}
+    
+    <div class="chart-container">
+        <canvas id="categoriesChart"></canvas>
+    </div>
+
+    <div class="categories-tree">
+        {% for category in categories %}
+        <div class="category-item" data-level="{{ category.level|default:0 }}">
+            <div class="category-header">
+                <span class="category-name">{{ category.name }}</span>
+                <span class="category-id">ID: {{ category.category_id }}</span>
+            </div>
+            
+            {% if category.children %}
+            <div class="category-children">
+                {% for child in category.children %}
+                <div class="category-item" data-level="{{ category.level|default:0|add:1 }}">
+                    <div class="category-header">
+                        <span class="category-name">{{ child.name }}</span>
+                        <span class="category-id">ID: {{ child.category_id }}</span>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+        </div>
+        {% empty %}
+        <p class="no-categories">Категории не найдены</p>
+        {% endfor %}
+    </div>
+</section>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const ctx = document.getElementById('categoriesChart').getContext('2d');
+    const categories = {{ categories_json|safe }};
+    
+    // Подсчет количества товаров в категориях (примерные данные)
+    const categoryData = categories.map(cat => {
+        return {
+            name: cat.name,
+            count: cat.product_count || Math.floor(Math.random() * 100) + 10
+        };
+    });
+    
+    new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: categoryData.map(cat => cat.name),
+            datasets: [{
+                label: 'Товаров в категории',
+                data: categoryData.map(cat => cat.count),
+                backgroundColor: 'rgba(54, 162, 235, 0.7)',
+                borderColor: 'rgba(54, 162, 235, 1)',
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    title: {
+                        display: true,
+                        text: 'Количество товаров'
+                    }
+                },
+                x: {
+                    title: {
+                        display: true,
+                        text: 'Категории'
+                    }
+                }
+            }
+        }
+    });
+});
+</script>
+
+<style>
+.category-item {
+    margin-left: calc(20px * var(--level, 0));
+    margin-bottom: 10px;
+    padding: 10px;
+    border-left: 3px solid #4285f4;
+}
+
+.category-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.category-name {
+    font-weight: 500;
+}
+
+.category-id {
+    color: #666;
+    font-size: 0.8em;
+}
+
+.category-children {
+    margin-top: 10px;
+}
+</style>
+{% endblock %}

@@ -1,32 +1,59 @@
 {% extends "wb_api/base.html" %}
+{% load static %}
 
 {% block title %}Товары Wildberries{% endblock %}
 
 {% block content %}
 <section class="products-section">
     <h2>Последние товары</h2>
-    
+
+    {# Блок отображения ошибок #}
+    {% if error %}
+    <div class="alert alert-danger">
+        Ошибка при загрузке данных: {{ error }}
+        <br>Попробуйте обновить страницу или обратитесь к администратору.
+    </div>
+    {% endif %}
+
+    {# Блок для случая, когда данных нет, но и ошибки нет #}
+    {% if not products and not error %}
+    <div class="no-data-message">
+        Нет данных о товарах
+    </div>
+    {% endif %}
+
+    {# График цен - показываем только если есть данные #}
+    {% if products %}
     <div class="chart-container">
         <canvas id="priceChart"></canvas>
     </div>
+    {% endif %}
 
+    {# Список товаров #}
     <div class="products-grid">
         {% for product in products %}
         <div class="product-card">
-            <h3>{{ product.name }}</h3>
-            <p class="product-id">ID: {{ product.product_id }}</p>
-            
+            <h3>{{ product.name|default:"Без названия" }}</h3>
+            <p class="product-id">ID: {{ product.product_id|default:"N/A" }}</p>
+
             <div class="product-details">
                 <div class="price-info">
-                    <span class="price">{{ product.prices.0.price }} ₽</span>
+                    <span class="price">
+                        {{ product.prices.0.price|default:0 }} ₽
+                    </span>
                     {% if product.prices.0.discount %}
                     <span class="discount">-{{ product.prices.0.discount }}%</span>
                     {% endif %}
                 </div>
-                
+
                 <div class="stock-info">
                     {% for stock in product.stocks %}
-                    <span>Склад {{ stock.warehouse_id }}: {{ stock.amount }} шт.</span>
+                    <span class="stock-item">
+                        Склад {{ stock.warehouse_id|default:"N/A" }}:
+                        {{ stock.amount|default:0 }} шт.
+                    </span>
+                    {% empty %}
+                    <span class="no-stock">Нет данных об остатках</span>
                     {% endfor %}
                 </div>
             </div>
@@ -37,48 +64,74 @@
     </div>
 </section>
 
+{# JavaScript для графика - только если есть продукты #}
+{% if products %}
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const ctx = document.getElementById('priceChart').getContext('2d');
-        const products = {{ products_json|safe }};
-        
-        new Chart(ctx, {
-            type: 'bar',
-            data: {
-                labels: products.map(p => p.name.substring(0, 20) + (p.name.length > 20 ? '...' : '')),
-                datasets: [{
-                    label: 'Цена',
-                    data: products.map(p => p.prices[0].price),
-                    backgroundColor: 'rgba(54, 162, 235, 0.7)',
-                    borderColor: 'rgba(54, 162, 235, 1)',
-                    borderWidth: 1
+document.addEventListener('DOMContentLoaded', function() {
+    const ctx = document.getElementById('priceChart').getContext('2d');
+    const products = {{ products_json|safe }};
+
+    // Защита от отсутствия данных
+    const chartData = {
+        labels: products.map(p => {
+            const name = p.name || 'Без названия';
+            return name.substring(0, 20) + (name.length > 20 ? '...' : '');
+        }),
+        datasets: [{
+            label: 'Цена',
+            data: products.map(p => p.prices?.[0]?.price || 0),
+            backgroundColor: 'rgba(54, 162, 235, 0.7)',
+            borderColor: 'rgba(54, 162, 235, 1)',
+            borderWidth: 1
+        },
+        {
+            label: 'Остатки',
+            data: products.map(p => {
+                return p.stocks?.reduce((sum, s) => sum + (s.amount || 0), 0) || 0;
+            }),
+            backgroundColor: 'rgba(75, 192, 192, 0.7)',
+            borderColor: 'rgba(75, 192, 192, 1)',
+            borderWidth: 1,
+            type: 'line',
+            yAxisID: 'y1'
+        }]
+    };
+
+    new Chart(ctx, {
+        type: 'bar',
+        data: chartData,
+        options: {
+            responsive: true,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    title: { display: true, text: 'Цена (₽)' }
                 },
-                {
-                    label: 'Остатки',
-                    data: products.map(p => p.stocks.reduce((sum, s) => sum + s.amount, 0)),
-                    backgroundColor: 'rgba(75, 192, 192, 0.7)',
-                    borderColor: 'rgba(75, 192, 192, 1)',
-                    borderWidth: 1,
-                    type: 'line',
-                    yAxisID: 'y1'
-                }]
+                y1: {
+                    position: 'right',
+                    beginAtZero: true,
+                    title: { display: true, text: 'Остатки (шт.)' },
+                    grid: { drawOnChartArea: false }
+                }
             },
-            options: {
-                responsive: true,
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        title: { display: true, text: 'Цена (₽)' }
-                    },
-                    y1: {
-                        position: 'right',
-                        beginAtZero: true,
-                        title: { display: true, text: 'Остатки (шт.)' },
-                        grid: { drawOnChartArea: false }
+            plugins: {
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            let label = context.dataset.label || '';
+                            if (label) label += ': ';
+                            if (context.parsed.y !== null) {
+                                label += context.parsed.y;
+                                label += context.dataset.label === 'Цена' ? ' ₽' : ' шт.';
+                            }
+                            return label;
+                        }
                     }
                 }
             }
-        });
+        }
     });
+});
 </script>
+{% endif %}
 {% endblock %}

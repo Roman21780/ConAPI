@@ -1,0 +1,92 @@
+{% extends "wb_api/base.html" %}
+{% load static %}
+
+{% block title %}Заказы Wildberries{% endblock %}
+
+{% block content %}
+<section class="orders-section">
+    <h2>Последние заказы</h2>
+
+    {% if error %}
+    <div class="alert alert-danger">
+        Ошибка при загрузке данных: {{ error }}
+        <br>Попробуйте обновить страницу или обратитесь к администратору.
+    </div>
+    {% endif %}
+    
+    <div class="chart-container">
+        <canvas id="ordersChart"></canvas>
+    </div>
+
+    <div class="orders-list">
+        {% for order in orders %}
+        <div class="order-card">
+            <div class="order-header">
+                <span class="order-id">Заказ #{{ order.order_id }}</span>
+                <span class="order-status {{ order.status }}">{{ order.status }}</span>
+            </div>
+            
+            <div class="order-details">
+                <div class="order-items">
+                    {% for item in order.items %}
+                    <div class="order-item">
+                        <span class="item-name">{{ item.product_id }}</span>
+                        <span class="item-quantity">{{ item.quantity }} шт.</span>
+                    </div>
+                    {% endfor %}
+                </div>
+                
+                <div class="order-summary">
+                    <span class="total-amount">{{ order.total_amount }} ₽</span>
+                    <span class="order-date">{{ order.created_at|date:"d.m.Y H:i" }}</span>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <p class="no-orders">Заказы не найдены</p>
+        {% endfor %}
+    </div>
+</section>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const ctx = document.getElementById('ordersChart').getContext('2d');
+    const orders = {{ orders_json|safe }};
+    
+    // Группируем заказы по статусу
+    const statusCounts = {};
+    orders.forEach(order => {
+        statusCounts[order.status] = (statusCounts[order.status] || 0) + 1;
+    });
+    
+    new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: Object.keys(statusCounts),
+            datasets: [{
+                data: Object.values(statusCounts),
+                backgroundColor: [
+                    '#36a2eb',
+                    '#ff6384',
+                    '#4bc0c0',
+                    '#ffcd56',
+                    '#9966ff'
+                ]
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                },
+                title: {
+                    display: true,
+                    text: 'Распределение заказов по статусам'
+                }
+            }
+        }
+    });
+});
+</script>
+{% endblock %}
