@@ -1,10 +1,12 @@
 from .base import WBClientBase, WBResponse
+from .models.cache import cache_api_call
 from .models.schemas import OrderSchema, OrderListSchema
 from datetime import datetime
 from typing import Optional, Dict
 
 
 class WBOrdersClient(WBClientBase):
+    @cache_api_call(ttl=900)  # 15 минут кэширования для заказов
     def get_orders(self, filter: Optional[Dict] = None) -> WBResponse:
         """
         Получение списка заказов

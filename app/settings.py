@@ -9,7 +9,7 @@ https://docs.djangoproject.com/en/5.2/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.2/ref/settings/
 """
-
+import os
 from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -39,9 +39,12 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'wb_api',
     'cacheops',
+    'django_celery_beat',
+    'debug_toolbar',
 ]
 
 MIDDLEWARE = [
+    'debug_toolbar.middleware.DebugToolbarMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -76,8 +79,12 @@ WSGI_APPLICATION = 'app.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'ConAPI',
+        'HOST': '127.0.0.1',
+        'PORT': '5432',
+        'USER': 'postgres',
+        'PASSWORD': 'Serebro11!!',
     }
 }
 
@@ -117,16 +124,44 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
 STATIC_URL = 'static/'
+STATICFILES_DIRS = [os.path.join(BASE_DIR, 'wb_api/static')]
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-CACHEOPS_REDIS = "redis://localhost:6379/1"
-CACHEOPS = {
-    'wb_api.*': {'ops': 'all', 'timeout': 60*30},  # 30 минут
+# settings.py
+
+# Конфигурация Redis
+REDIS_URL = 'redis://localhost:6379'
+
+# Настройки Celery
+CELERY_BROKER_URL = f'{REDIS_URL}/0'  # DB 0 для брокера задач
+CELERY_RESULT_BACKEND = f'{REDIS_URL}/1'  # DB 1 для результатов
+
+# Настройки cacheops
+CACHEOPS_REDIS = f'{REDIS_URL}/2'  # DB 2 для кэширования
+
+# Дополнительные настройки cacheops
+CACHEOPS_DEFAULTS = {
+    'timeout': 60 * 60 * 24,  # 24 часа по умолчанию
+    'ops': 'all',
 }
+CACHEOPS = {
+    'wb_api.*': {
+        'ops': 'all',
+        'timeout': 60 * 60 * 3,  # 3 часа для моделей WB API
+    },
+    'auth.*': {
+        'ops': 'all',
+        'timeout': 60 * 60 * 24 * 7,  # 1 неделя для auth
+    }
+}
+
+INTERNAL_IPS = [
+    '127.0.0.1',
+]
 
 WB_API_URL = "https://dev.wildberries.ru/api"
 WB_API_TOKEN = "eyJhbGciOiJFUzI1NiIsImtpZCI6IjIwMjUwNDE3djEiLCJ0eXAiOiJKV1QifQ.eyJlbnQiOjEsImV4cCI6MTc2MTg5MzI5MywiaWQiOiIwMTk2OGQyZC04NjI0LTcxNGEtOTQ2OC1mODNkZDY1MDJiNmYiLCJpaWQiOjY0OTU3NDM1LCJvaWQiOjEzNDkyNzEsInMiOjAsInNpZCI6ImUxY2QzMmU4LWQwYTYtNDFiOC04MzkyLTQ0OGEzOTk3ODVjMiIsInQiOnRydWUsInVpZCI6NjQ5NTc0MzV9.AlVassO3PuDQtV7A-OrZitAN0chGrqonW_DIlux0D3ral4neInndIkX-Id_MAO2AHfpkwta97dRRAyg0a-82DA"

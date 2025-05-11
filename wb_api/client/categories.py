@@ -1,9 +1,11 @@
 from .base import WBClientBase, WBResponse
+from .models.cache import cache_api_call
 from .models.schemas import CategorySchema, CategoryListSchema
 from typing import Optional, Dict
 
 
 class WBCategoriesClient(WBClientBase):
+    @cache_api_call(ttl=86400)  # 24 часа кэширования для категорий
     def get_categories(self, filter: Optional[Dict] = None) -> WBResponse:
         """
         Получение списка категорий маркетплейса

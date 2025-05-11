@@ -1,0 +1,84 @@
+{% extends "wb_api/base.html" %}
+
+{% block title %}Товары Wildberries{% endblock %}
+
+{% block content %}
+<section class="products-section">
+    <h2>Последние товары</h2>
+    
+    <div class="chart-container">
+        <canvas id="priceChart"></canvas>
+    </div>
+
+    <div class="products-grid">
+        {% for product in products %}
+        <div class="product-card">
+            <h3>{{ product.name }}</h3>
+            <p class="product-id">ID: {{ product.product_id }}</p>
+            
+            <div class="product-details">
+                <div class="price-info">
+                    <span class="price">{{ product.prices.0.price }} ₽</span>
+                    {% if product.prices.0.discount %}
+                    <span class="discount">-{{ product.prices.0.discount }}%</span>
+                    {% endif %}
+                </div>
+                
+                <div class="stock-info">
+                    {% for stock in product.stocks %}
+                    <span>Склад {{ stock.warehouse_id }}: {{ stock.amount }} шт.</span>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <p class="no-products">Товары не найдены</p>
+        {% endfor %}
+    </div>
+</section>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const ctx = document.getElementById('priceChart').getContext('2d');
+        const products = {{ products_json|safe }};
+        
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: products.map(p => p.name.substring(0, 20) + (p.name.length > 20 ? '...' : '')),
+                datasets: [{
+                    label: 'Цена',
+                    data: products.map(p => p.prices[0].price),
+                    backgroundColor: 'rgba(54, 162, 235, 0.7)',
+                    borderColor: 'rgba(54, 162, 235, 1)',
+                    borderWidth: 1
+                },
+                {
+                    label: 'Остатки',
+                    data: products.map(p => p.stocks.reduce((sum, s) => sum + s.amount, 0)),
+                    backgroundColor: 'rgba(75, 192, 192, 0.7)',
+                    borderColor: 'rgba(75, 192, 192, 1)',
+                    borderWidth: 1,
+                    type: 'line',
+                    yAxisID: 'y1'
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: { display: true, text: 'Цена (₽)' }
+                    },
+                    y1: {
+                        position: 'right',
+                        beginAtZero: true,
+                        title: { display: true, text: 'Остатки (шт.)' },
+                        grid: { drawOnChartArea: false }
+                    }
+                }
+            }
+        });
+    });
+</script>
+{% endblock %}
