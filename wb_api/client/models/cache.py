@@ -1,9 +1,8 @@
 from django.db import models
 from django.utils import timezone
-from cacheops import cached_as
 
 
-class APICache(models.Model):
+class ClientAPICache(models.Model):
     endpoint = models.CharField(max_length=255, unique=True)
     response = models.JSONField()
     expires_at = models.DateTimeField()
@@ -39,7 +38,7 @@ def cache_api_call(ttl=3600):
             params = kwargs.get('filter', {})
 
             # Пытаемся получить из кэша
-            cached = APICache.get_cached_response(endpoint, params)
+            cached = ClientAPICache.get_cached_response(endpoint, params)
             if cached is not None:
                 return cached
 
@@ -48,7 +47,7 @@ def cache_api_call(ttl=3600):
 
             # Кэшируем успешные ответы
             if response.success:
-                APICache.set_cached_response(
+                ClientAPICache.set_cached_response(
                     endpoint=endpoint,
                     response=response,
                     params=params,

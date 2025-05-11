@@ -63,5 +63,5 @@ class WildberriesClient(WBProductsClient, WBCategoriesClient, WBOrdersClient):
 
     def _invalidate_cache(self, cache_key: str):
         """Инвалидация кэша по ключу"""
-        from .models.cache import APICache
-        APICache.objects.filter(endpoint__startswith=cache_key).delete()
+        from .models.cache import ClientAPICache
+        ClientAPICache.objects.filter(endpoint__startswith=cache_key).delete()
