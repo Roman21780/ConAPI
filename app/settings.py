@@ -37,7 +37,8 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'wb_api'
+    'wb_api',
+    'cacheops',
 ]
 
 MIDDLEWARE = [
@@ -121,3 +122,11 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+CACHEOPS_REDIS = "redis://localhost:6379/1"
+CACHEOPS = {
+    'wb_api.*': {'ops': 'all', 'timeout': 60*30},  # 30 минут
+}
+
+WB_API_URL = "https://dev.wildberries.ru/api"
+WB_API_TOKEN = "eyJhbGciOiJFUzI1NiIsImtpZCI6IjIwMjUwNDE3djEiLCJ0eXAiOiJKV1QifQ.eyJlbnQiOjEsImV4cCI6MTc2MTg5MzI5MywiaWQiOiIwMTk2OGQyZC04NjI0LTcxNGEtOTQ2OC1mODNkZDY1MDJiNmYiLCJpaWQiOjY0OTU3NDM1LCJvaWQiOjEzNDkyNzEsInMiOjAsInNpZCI6ImUxY2QzMmU4LWQwYTYtNDFiOC04MzkyLTQ0OGEzOTk3ODVjMiIsInQiOnRydWUsInVpZCI6NjQ5NTc0MzV9.AlVassO3PuDQtV7A-OrZitAN0chGrqonW_DIlux0D3ral4neInndIkX-Id_MAO2AHfpkwta97dRRAyg0a-82DA"
