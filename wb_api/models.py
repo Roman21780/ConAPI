@@ -1,4 +1,5 @@
 from django.db import models
+from datetime import timedelta
 
 # Create your models here.
 
@@ -8,71 +9,65 @@ from django.utils import timezone
 from django.core.serializers.json import DjangoJSONEncoder
 import json
 
+class APICacheManager(models.Manager):
+    def clear_expired(self):
+        from django.utils import timezone
+        return self.filter(expires_at__lt=timezone.now()).delete()
+
 class APICache(models.Model):
-    """
-    Модель для хранения кэшированных ответов от API Wildberries
-    """
-    endpoint = models.CharField(
-        max_length=255,
-        unique=True,
-        verbose_name='API Endpoint'
-    )
-    response = models.JSONField(
-        encoder=DjangoJSONEncoder,
-        verbose_name='Response Data'
-    )
-    expires_at = models.DateTimeField(
-        verbose_name='Expiration Time'
-    )
-    created_at = models.DateTimeField(
-        auto_now_add=True,
-        verbose_name='Creation Time'
-    )
-    updated_at = models.DateTimeField(
-        auto_now=True,
-        verbose_name='Last Update'
-    )
+    objects = APICacheManager()
+    endpoint = models.CharField(max_length=255, unique=True)
+    response = models.JSONField()
+    expires_at = models.DateTimeField()
+    created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        verbose_name = 'API Cache'
-        verbose_name_plural = 'API Caches'
+        db_table = 'api_cache'
         indexes = [
             models.Index(fields=['endpoint']),
             models.Index(fields=['expires_at']),
         ]
-        ordering = ['-expires_at']
 
     def __str__(self):
-        return f"{self.endpoint} (expires: {self.expires_at})"
+        return f"Cache for {self.endpoint}"
 
     @classmethod
-    def get_cached_response(cls, endpoint, params=None):
-        """
-        Получение кэшированного ответа по endpoint и параметрам
-        """
-        cache_key = cls._generate_cache_key(endpoint, params)
-        try:
-            cache = cls.objects.get(endpoint=cache_key)
-            if cache.expires_at > timezone.now():
-                return cache.response
-            cache.delete()
-        except cls.DoesNotExist:
-            pass
-        return None
+    def set_cached_response(cls, endpoint, response, params=None, ttl=300):
+        from django.utils import timezone
+        from datetime import timedelta
+        import json
 
-    @classmethod
-    def set_cached_response(cls, endpoint, response, params=None, ttl=3600):
-        """
-        Сохранение ответа в кэш
-        """
-        cache_key = cls._generate_cache_key(endpoint, params)
+        cache_key = f"{endpoint}:{json.dumps(params, sort_keys=True) if params else ''}"
+
+        # Проверяем тип response и преобразуем при необходимости
+        if isinstance(response, dict):
+            serialized_data = response
+        else:
+            serialized_data = {
+                'success': response.success,
+                'data': response.data,
+                'error': response.error,
+                'status_code': response.status_code
+            }
+
         cls.objects.update_or_create(
             endpoint=cache_key,
             defaults={
-                'response': response,
-                'expires_at': timezone.now() + timezone.timedelta(seconds=ttl)
+                'response': serialized_data,
+                'expires_at': timezone.now() + timedelta(seconds=ttl)
             }
         )
+
+    @classmethod
+    def get_cached_response(cls, endpoint, params=None):
+        cache_key = f"{endpoint}:{json.dumps(params, sort_keys=True) if params else ''}"
+        try:
+            cached = cls.objects.get(endpoint=cache_key)
+            if cached.expires_at > timezone.now():
+                return cached.response
+            cached.delete()
+        except cls.DoesNotExist:
+            return None
 
     @classmethod
     def clear_expired(cls):

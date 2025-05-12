@@ -1,5 +1,7 @@
 from django.db import models
 from django.utils import timezone
+import json
+from datetime import timedelta
 
 
 class ClientAPICache(models.Model):
@@ -8,27 +10,41 @@ class ClientAPICache(models.Model):
     expires_at = models.DateTimeField()
 
     @classmethod
-    def get_cached_response(cls, endpoint, params=None):
-        cache_key = f"{endpoint}:{str(params)}"
-        try:
-            cache = cls.objects.get(endpoint=cache_key)
-            if cache.expires_at > timezone.now():
-                return cache.response
-            cache.delete()
-        except cls.DoesNotExist:
-            pass
-        return None
+    def set_cached_response(cls, endpoint, response, params=None, ttl=300):
+        from django.utils import timezone
+        from datetime import timedelta
+        import json
 
-    @classmethod
-    def set_cached_response(cls, endpoint, response, params=None, ttl=3600):
-        cache_key = f"{endpoint}:{str(params)}"
+        cache_key = f"{endpoint}:{json.dumps(params, sort_keys=True) if params else ''}"
+
+        serialized_data = {
+            'success': response.success,
+            'data': response.data,
+            'error': response.error,
+            'status_code': response.status_code
+        }
+
         cls.objects.update_or_create(
             endpoint=cache_key,
             defaults={
-                'response': response,
-                'expires_at': timezone.now() + timezone.timedelta(seconds=ttl)
+                'response': serialized_data,
+                'expires_at': timezone.now() + timedelta(seconds=ttl)
             }
         )
+
+    @classmethod
+    def get_cached_response(cls, endpoint, params=None):
+        import json
+        from django.utils import timezone
+
+        cache_key = f"{endpoint}:{json.dumps(params, sort_keys=True) if params else ''}"
+        try:
+            cached = cls.objects.get(endpoint=cache_key)
+            if cached.expires_at > timezone.now():
+                return cached.response
+            cached.delete()
+        except cls.DoesNotExist:
+            return None
 
 
 def cache_api_call(ttl=3600):

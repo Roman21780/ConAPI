@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     'cacheops',
     'django_celery_beat',
     'debug_toolbar',
+    'app',
 ]
 
 MIDDLEWARE = [

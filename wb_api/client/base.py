@@ -18,7 +18,6 @@ class WBResponse:
     status_code: Optional[int] = None
     execution_time: Optional[float] = None
 
-
 class WBClientBase:
     DEFAULT_TIMEOUT = 30
     MAX_RETRIES = 3
