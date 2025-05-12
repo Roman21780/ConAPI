@@ -13,10 +13,11 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class WBResponse:
-    success: bool
-    data: Optional[Union[Dict[str, Any], list]]
-    error: Optional[str]
-    status_code: Optional[int] = None
+    def __init__(self, success, data, error, status_code):
+        self.success = success
+        self.data = data
+        self.error = error
+        self.status_code = status_code  # Обязательное поле
 
 
 class WBClientBase:

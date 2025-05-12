@@ -33,27 +33,18 @@ class APICache(models.Model):
 
     @classmethod
     def set_cached_response(cls, endpoint, response, params=None, ttl=300):
-        from django.utils import timezone
-        from datetime import timedelta
-        import json
-
+        # response должен быть WBResponse
         cache_key = f"{endpoint}:{json.dumps(params, sort_keys=True) if params else ''}"
-
-        # Проверяем тип response и преобразуем при необходимости
-        if isinstance(response, dict):
-            serialized_data = response
-        else:
-            serialized_data = {
-                'success': response.success,
-                'data': response.data,
-                'error': response.error,
-                'status_code': response.status_code
-            }
 
         cls.objects.update_or_create(
             endpoint=cache_key,
             defaults={
-                'response': serialized_data,
+                'response': {
+                    'success': response.success,
+                    'data': response.data,
+                    'error': response.error,
+                    'status_code': response.status_code
+                },
                 'expires_at': timezone.now() + timedelta(seconds=ttl)
             }
         )

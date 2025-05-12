@@ -2,6 +2,9 @@ from django.db import models
 from django.utils import timezone
 import json
 from datetime import timedelta
+from functools import wraps
+
+from wb_api.client import WBResponse
 
 
 class ClientAPICache(models.Model):
@@ -47,30 +50,29 @@ class ClientAPICache(models.Model):
             return None
 
 
-def cache_api_call(ttl=3600):
+def cache_api_call(ttl=300):
     def decorator(func):
+        @wraps(func)
         def wrapper(self, *args, **kwargs):
-            endpoint = func.__name__
-            params = kwargs.get('filter', {})
+            cache_key = f"{func.__name__}:{args}:{kwargs}"
 
-            # Пытаемся получить из кэша
-            cached = ClientAPICache.get_cached_response(endpoint, params)
-            if cached is not None:
-                return cached
+            # Проверка кэша
+            cached = ClientAPICache.get_cached_response(cache_key)
+            if cached:
+                return WBResponse(**cached)
 
-            # Выполняем запрос
-            response = func(self, *args, **kwargs)
+            # Вызов оригинальной функции
+            result = func(self, *args, **kwargs)
 
-            # Кэшируем успешные ответы
-            if response.success:
+            # Сохранение в кэш
+            if isinstance(result, WBResponse):
                 ClientAPICache.set_cached_response(
-                    endpoint=endpoint,
-                    response=response,
-                    params=params,
+                    endpoint=cache_key,
+                    response=result,
                     ttl=ttl
                 )
 
-            return response
+            return result
 
         return wrapper
 

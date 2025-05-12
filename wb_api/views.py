@@ -1,5 +1,7 @@
 from django.views.generic import TemplateView
-from wb_api.client import WBOrdersClient, WBProductsClient, WBCategoriesClient
+from wb_api.client.orders import WBOrdersClient
+from wb_api.client.products import WBProductsClient
+from wb_api.client.categories import WBCategoriesClient
 
 
 class DashboardView(TemplateView):
