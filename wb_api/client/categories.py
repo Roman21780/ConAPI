@@ -1,7 +1,8 @@
-from .base import WBClientBase, WBResponse
+from .base import WBClientBase
 from .models.cache import cache_api_call
 from .models.schemas import CategorySchema, CategoryListSchema
 from typing import Optional, Dict
+from wb_api.models import WBResponse
 
 
 class WBCategoriesClient(WBClientBase):

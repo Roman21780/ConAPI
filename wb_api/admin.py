@@ -1,13 +1,10 @@
 from django.contrib import admin
 
-# Register your models here.
-
-
-from django.contrib import admin
+from .client.client import WBClient
 from .models import APICache
-from .client import WildberriesClient
 from django.utils.safestring import mark_safe
 import json
+from django.utils.timezone import now
 
 @admin.register(APICache)
 class APICacheAdmin(admin.ModelAdmin):
@@ -22,12 +19,14 @@ class APICacheAdmin(admin.ModelAdmin):
     endpoint_truncated.short_description = 'Endpoint'
 
     def response_prettified(self, obj):
-        response = json.loads(obj.response)
-        return mark_safe(f'<pre>{json.dumps(response, indent=2, ensure_ascii=False)}</pre>')
+        try:
+            response = json.loads(obj.response)
+            return mark_safe(f'<pre>{json.dumps(response, indent=2, ensure_ascii=False)}</pre>')
+        except json.JSONDecodeError:
+            return mark_safe(f'<pre>{obj.response}</pre>')
     response_prettified.short_description = 'Response (formatted)'
 
     def is_expired(self, obj):
-        from django.utils.timezone import now
         return obj.expires_at < now()
     is_expired.boolean = True
     is_expired.short_description = 'Expired'
@@ -40,14 +39,14 @@ wildberries_admin = WildberriesAdminArea(name='WildberriesAdmin')
 
 @admin.action(description='Force refresh selected cache items')
 def refresh_cache(modeladmin, request, queryset):
-    client = WildberriesClient()
+    client = WBClient(base_url="https://api.test", api_key="your_api_key")  # Инициализируем с параметрами
     for item in queryset:
         endpoint = item.endpoint.split(':')[0]
-        if endpoint == 'get_prds':
-            client.get_prds(force_refresh=True)
-        elif endpoint == 'get_prd':
+        if endpoint == 'get_products':  # Используем актуальные названия методов
+            client.get_products(force_refresh=True)
+        elif endpoint == 'get_product':
             product_id = item.endpoint.split(':')[1]
-            client.get_prd(product_id, force_refresh=True)
+            client.update_product(product_id, force_refresh=True)  # Используем существующий метод
 
 class WBAdminProxy(admin.ModelAdmin):
     actions = [refresh_cache]
@@ -58,6 +57,6 @@ class WBAdminProxy(admin.ModelAdmin):
 
 wildberries_admin.register(APICache, WBAdminProxy)
 
-# Регистрация в основной админке
+# Основная админка
 admin.site.site_header = 'OmniConnect Administration'
 admin.site.index_title = 'Wildberries API Management'

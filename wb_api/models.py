@@ -1,5 +1,7 @@
 from django.db import models
 from datetime import timedelta
+from typing import Any, Optional
+from pydantic import BaseModel
 
 # Create your models here.
 
@@ -8,6 +10,17 @@ from django.db import models
 from django.utils import timezone
 from django.core.serializers.json import DjangoJSONEncoder
 import json
+
+class WBResponse(BaseModel):
+    """
+    Стандартный формат ответа для всех API-запросов Wildberries
+    """
+    success: bool
+    data: Optional[Any] = None
+    error: Optional[str] = None
+
+    def __bool__(self):
+        return self.success
 
 class APICacheManager(models.Manager):
     def clear_expired(self):

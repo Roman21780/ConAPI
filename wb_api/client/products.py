@@ -31,57 +31,69 @@ class WBProductsClient(WBClientBase):
                 params['limit'] = filter['limit']
 
         response = self._request('GET', '/v1/products', params=params)
-        if response.success:
-            try:
-                validated_data = ProductListSchema.parse_obj(response.data)
-                return WBResponse(
-                    success=True,
-                    data=validated_data.dict(),
-                    error=None
-                )
-            except Exception as e:
-                return WBResponse(
-                    success=False,
-                    data=None,
-                    error=f"Validation error: {str(e)}"
-                )
-        return response
 
-    @cache_api_call(ttl=3600)  # 1 час кэширования для данных товара
-    def get_prd(self, prd_id: str) -> WBResponse:
-        """Получение полной информации о товаре"""
-        response = self._request('GET', f'/v1/products/{prd_id}')
-        if response.success:
-            try:
-                validated_data = ProductSchema.parse_obj(response.data)
-                return WBResponse(
-                    success=True,
-                    data=validated_data.dict(),
-                    error=None
-                )
-            except Exception as e:
-                return WBResponse(
-                    success=False,
-                    data=None,
-                    error=f"Validation error: {str(e)}"
-                )
-        return response
-
-    # Без кэширования, так как это операция записи
-    def set_prd(self, prd_id: str, data: Dict[str, Any]) -> WBResponse:
-        """Изменение атрибутов товара (не кэшируется)"""
         try:
-            product_data = ProductSchema(**data).dict(exclude_unset=True)
-            response = self._request('PATCH', f'/v1/products/{prd_id}', data=product_data)
+            if isinstance(response, WBResponse):
+                return response
 
-            # Инвалидируем кэш для этого товара
-            self._invalidate_cache(f'get_prd:{prd_id}')
-            return response
+            validated_data = ProductListSchema.parse_obj(response.json())
+            return WBResponse(
+                success=True,
+                data=validated_data.dict(by_alias=True),
+                error=None,
+                status_code=response.status_code  # Добавляем status_code
+            )
         except Exception as e:
             return WBResponse(
                 success=False,
                 data=None,
-                error=f"Validation error: {str(e)}"
+                error=f"Validation error: {str(e)}",
+                status_code=500  # Добавляем status_code
+            )
+
+    @cache_api_call(ttl=3600)
+    def get_prd(self, prd_id: str) -> WBResponse:
+        """Получение информации о товаре"""
+        response = self._request('GET', f'/v1/products/{prd_id}')
+        if isinstance(response, WBResponse):
+            return response
+
+        try:
+            validated = ProductSchema.parse_obj(response.json())
+            return WBResponse(
+                success=True,
+                data=validated.dict(),
+                error=None,
+                status_code=response.status_code
+            )
+        except Exception as e:
+            return WBResponse(
+                success=False,
+                data=None,
+                error=str(e),
+                status_code=500
+            )
+
+    def set_prd(self, prd_id: str, data: Dict) -> WBResponse:
+        """Обновление товара"""
+        try:
+            # Преобразуем входные данные
+            update_data = {k: v for k, v in data.items() if v is not None}
+            response = self._request('PATCH', f'/v1/products/{prd_id}', json=update_data)
+
+            self._invalidate_cache(f'get_prd:{prd_id}')
+            return WBResponse(
+                success=response.ok,
+                data=response.json() if response.ok else None,
+                error=None if response.ok else response.text,
+                status_code=response.status_code
+            )
+        except Exception as e:
+            return WBResponse(
+                success=False,
+                data=None,
+                error=str(e),
+                status_code=500
             )
 
     @cache_api_call(ttl=86400)  # 24 часа кэширования для комиссий

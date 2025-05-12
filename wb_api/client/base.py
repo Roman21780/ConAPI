@@ -14,28 +14,25 @@ from wb_api.models import APICache, WBAPIStats
 class WBResponse:
     success: bool
     data: any
-    error: str | None
-    status_code: int
+    error: Optional[str]
+    status_code: int  # Обязательное поле
+
+    def __post_init__(self):
+        if not hasattr(self, 'status_code'):
+            raise ValueError("status_code is required")
 
 class WBClientBase:
     DEFAULT_TIMEOUT = 30
     MAX_RETRIES = 3
     RETRY_DELAY = 1
 
-    def __init__(self, token: Optional[str] = None):
-        self.base_url = getattr(settings, 'WB_API_URL', 'https://dev.wildberries.ru/api')
-        self.token = token or getattr(settings, 'WB_API_TOKEN', None)
-
-        if not self.token:
-            raise WBAuthError("API token is not configured")
-
-        self.session = requests.Session()
+    def __init__(self, token: str):
+        self.token = token
+        self.session = requests.Session()  # Инициализация сессии
         self.session.headers.update({
-            'Authorization': f'Bearer {self.token}',
-            'Content-Type': 'application/json',
-            'Accept': 'application/json'
+            "Authorization": f"Bearer {self.token}",
+            "Content-Type": "application/json"
         })
-        self.session.timeout = self.DEFAULT_TIMEOUT
 
     def _request(self, method, endpoint, **kwargs):
         import requests
@@ -61,6 +58,11 @@ class WBClientBase:
                 error=str(e),
                 status_code=500
             )
+
+    def _invalidate_cache(self, cache_key: str):
+        """Инвалидирует кэш по ключу"""
+        from .models.cache import ClientAPICache  # Отложенный импорт чтобы избежать циклических зависимостей
+        ClientAPICache.objects.filter(endpoint__startswith=cache_key).delete()
 
     def _generate_cache_key(self, endpoint: str, params: Optional[Dict] = None) -> str:
         """Генерация ключа кэша на основе endpoint и параметров"""

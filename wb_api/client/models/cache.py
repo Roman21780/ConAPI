@@ -4,7 +4,7 @@ import json
 from datetime import timedelta
 from functools import wraps
 
-from wb_api.client import WBResponse
+from wb_api.models import WBResponse
 
 
 class ClientAPICache(models.Model):
