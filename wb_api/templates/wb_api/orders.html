@@ -22,23 +22,23 @@
         {% for order in orders %}
         <div class="order-card">
             <div class="order-header">
-                <span class="order-id">Заказ #{{ order.order_id }}</span>
-                <span class="order-status {{ order.status }}">{{ order.status }}</span>
+                <span class="order-id">Заказ #{{ order.id }}</span>
+                <span class="order-status {{ order.status|lower }}">{{ order.status }}</span>
             </div>
-            
+
             <div class="order-details">
                 <div class="order-items">
                     {% for item in order.items %}
                     <div class="order-item">
-                        <span class="item-name">{{ item.product_id }}</span>
-                        <span class="item-quantity">{{ item.quantity }} шт.</span>
+                        <span class="item-name">{{ item.name }}</span>
+                        <span class="item-quantity">{{ item.quantity }} шт. × {{ item.price }} ₽</span>
                     </div>
                     {% endfor %}
                 </div>
-                
+
                 <div class="order-summary">
-                    <span class="total-amount">{{ order.total_amount }} ₽</span>
-                    <span class="order-date">{{ order.created_at|date:"d.m.Y H:i" }}</span>
+                    <span class="total-amount">Итого: {{ order.total }} ₽</span>
+                    <span class="order-date">{{ order.date|date:"d.m.Y H:i" }}</span>
                 </div>
             </div>
         </div>
@@ -47,18 +47,21 @@
         {% endfor %}
     </div>
 </section>
+{% endblock %}
 
+{% block scripts %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const ctx = document.getElementById('ordersChart').getContext('2d');
-    const orders = {{ orders_json|safe }};
-    
+    const ordersData = {{ orders|safe }};
+
     // Группируем заказы по статусу
     const statusCounts = {};
-    orders.forEach(order => {
-        statusCounts[order.status] = (statusCounts[order.status] || 0) + 1;
+    ordersData.forEach(order => {
+        const status = order.status || 'Unknown';
+        statusCounts[status] = (statusCounts[status] || 0) + 1;
     });
-    
+
     new Chart(ctx, {
         type: 'doughnut',
         data: {
@@ -66,20 +69,14 @@ document.addEventListener('DOMContentLoaded', function() {
             datasets: [{
                 data: Object.values(statusCounts),
                 backgroundColor: [
-                    '#36a2eb',
-                    '#ff6384',
-                    '#4bc0c0',
-                    '#ffcd56',
-                    '#9966ff'
+                    '#36a2eb', '#ff6384', '#4bc0c0', '#ffcd56', '#9966ff'
                 ]
             }]
         },
         options: {
             responsive: true,
             plugins: {
-                legend: {
-                    position: 'bottom',
-                },
+                legend: { position: 'bottom' },
                 title: {
                     display: true,
                     text: 'Распределение заказов по статусам'

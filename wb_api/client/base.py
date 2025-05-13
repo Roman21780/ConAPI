@@ -1,56 +1,37 @@
+# wb_api/client/base.py
+from dataclasses import dataclass
+from typing import Any, Optional
 import requests
 from django.conf import settings
-from typing import Optional, Dict, Any, Union
-from dataclasses import dataclass
-import json
-import time
-from urllib.parse import urlencode
-
-from wb_api.exceptions import WBAuthError, WBAPIError
-from wb_api.models import APICache, WBAPIStats
-
 
 @dataclass
 class WBResponse:
     success: bool
-    data: any
+    data: Any
     error: Optional[str]
-    status_code: int  # Обязательное поле
-
-    def __post_init__(self):
-        if not hasattr(self, 'status_code'):
-            raise ValueError("status_code is required")
+    status_code: int
 
 class WBClientBase:
-    DEFAULT_TIMEOUT = 30
-    MAX_RETRIES = 3
-    RETRY_DELAY = 1
+    BASE_URL = settings.WB_API_URL  # Используем URL из настроек
 
-    def __init__(self, token: str):
-        self.token = token
-        self.session = requests.Session()  # Инициализация сессии
+    def __init__(self, token: str = None):
+        self.token = token or settings.WB_API_TOKEN
+        self.session = requests.Session()
         self.session.headers.update({
             "Authorization": f"Bearer {self.token}",
             "Content-Type": "application/json"
         })
 
-    def _request(self, method, endpoint, **kwargs):
-        import requests
-
-        headers = {
-            'Authorization': self.token,
-            'Content-Type': 'application/json'
-        }
-        headers.update(kwargs.get('headers', {}))
-
+    def _request(self, method: str, endpoint: str, **kwargs):
+        url = f"{self.BASE_URL}{endpoint}"
         try:
-            response = requests.request(
-                method,
-                f"{self.base_url}{endpoint}",
-                headers=headers,
-                **kwargs
+            response = self.session.request(method, url, **kwargs)
+            return WBResponse(
+                success=response.status_code == 200,
+                data=response.json() if response.status_code == 200 else None,
+                error=None if response.status_code == 200 else response.text,
+                status_code=response.status_code
             )
-            return response
         except Exception as e:
             return WBResponse(
                 success=False,
@@ -58,33 +39,3 @@ class WBClientBase:
                 error=str(e),
                 status_code=500
             )
-
-    def _invalidate_cache(self, cache_key: str):
-        """Инвалидирует кэш по ключу"""
-        from .models.cache import ClientAPICache  # Отложенный импорт чтобы избежать циклических зависимостей
-        ClientAPICache.objects.filter(endpoint__startswith=cache_key).delete()
-
-    def _generate_cache_key(self, endpoint: str, params: Optional[Dict] = None) -> str:
-        """Генерация ключа кэша на основе endpoint и параметров"""
-        if not params:
-            return endpoint
-        return f"{endpoint}?{urlencode(sorted(params.items()))}"
-
-    def _parse_error(self, response: requests.Response) -> str:
-        """Парсинг ошибок API Wildberries"""
-        try:
-            error_data = response.json()
-            if isinstance(error_data, dict):
-                return error_data.get('error', {}).get('message', response.text)
-            return response.text
-        except ValueError:
-            return response.text
-
-    def check_connection(self) -> WBResponse:
-        """Проверка соединения с API"""
-        return self._request('GET', '/v1/auth/test', use_cache=False)
-
-    def invalidate_cache(self, endpoint: str, params: Optional[Dict] = None):
-        """Инвалидация кэша для конкретного endpoint"""
-        cache_key = self._generate_cache_key(endpoint, params)
-        APICache.objects.filter(endpoint=cache_key).delete()

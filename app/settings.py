@@ -132,33 +132,6 @@ STATICFILES_DIRS = [os.path.join(BASE_DIR, 'wb_api/static'),]
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-# settings.py
-
-# Конфигурация Redis
-# REDIS_URL = 'redis://localhost:6379'
-
-# Настройки Celery
-# CELERY_BROKER_URL = f'{REDIS_URL}/0'  # DB 0 для брокера задач
-# CELERY_RESULT_BACKEND = f'{REDIS_URL}/1'  # DB 1 для результатов
-
-# # Настройки cacheops
-# CACHEOPS_REDIS = f'{REDIS_URL}/2'  # DB 2 для кэширования
-#
-# # Дополнительные настройки cacheops
-# CACHEOPS_DEFAULTS = {
-#     'timeout': 60 * 60 * 24,  # 24 часа по умолчанию
-#     'ops': 'all',
-# }
-# CACHEOPS = {
-#     'wb_api.*': {
-#         'ops': 'all',
-#         'timeout': 60 * 60 * 3,  # 3 часа для моделей WB API
-#     },
-#     'auth.*': {
-#         'ops': 'all',
-#         'timeout': 60 * 60 * 24 * 7,  # 1 неделя для auth
-#     }
-# }
 
 INTERNAL_IPS = [
     '127.0.0.1',

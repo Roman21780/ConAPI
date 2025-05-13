@@ -1,12 +1,13 @@
-<!-- conapi/app1/wb_api/templates/wb_api/error.html -->
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Ошибка</title>
-</head>
-<body>
+{% extends "wb_api/base.html" %}
+
+{% block title %}Ошибка{% endblock %}
+
+{% block content %}
+<div class="error-container">
     <h1>Произошла ошибка</h1>
-    <p>{{ error }}</p>
-    <a href="/">Вернуться на главную</a>
-</body>
-</html>
+    <div class="error-message">
+        {{ error }}
+    </div>
+    <a href="/" class="home-link">Вернуться на главную</a>
+</div>
+{% endblock %}
