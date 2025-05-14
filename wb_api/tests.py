@@ -1,6 +1,8 @@
 from django.test import TestCase
 from unittest.mock import patch, MagicMock
 import requests  # Добавляем импорт requests
+
+from .client.base import WBClientBase
 from .client.client import WBClient
 from wb_api.models import WBResponse
 
@@ -99,7 +101,7 @@ class OrderTests(TestCase):
 
 class ErrorHandlingTests(TestCase):
     def setUp(self):
-        self.client = WBClient(base_url="https://api.test", api_key="test_key")
+        self.client = WBClientBase(token="test_key")
 
     @patch('requests.Session.request')
     def test_connection_error(self, mock_request):
@@ -107,7 +109,7 @@ class ErrorHandlingTests(TestCase):
 
         response = self.client._request('GET', '/test')
         self.assertFalse(response.success)
-        self.assertEqual(response.error, "Connection failed")
+        self.assertEqual(response.error, "Request failed: Connection failed")
 
     @patch('requests.Session.request')
     def test_api_error_handling(self, mock_request):
@@ -123,34 +125,33 @@ class ErrorHandlingTests(TestCase):
 
 class IntegrationTests(TestCase):
     def setUp(self):
-        self.client = WBClient(base_url="https://api.test", api_key="test_key")
+        self.client = WBClientBase(token="test_key")
 
-    @patch('wb_api.client.WBClient.check_creds')
-    @patch('wb_api.client.WBClient.get_products')
-    @patch('wb_api.client.WBClient.get_orders')
-    def test_full_workflow(self, mock_orders, mock_products, mock_auth):
-        mock_auth.return_value = WBResponse(success=True, data={"valid": True}, error=None)
-        mock_products.return_value = WBResponse(
-            success=True,
-            data={"items": [{"id": "12345"}], "total": 1},
-            error=None
-        )
-        mock_orders.return_value = WBResponse(
-            success=True,
-            data={"items": [{"id": "54321"}], "total": 1},
-            error=None
-        )
+    @patch('wb_api.client.base.WBClientBase._request')
+    def test_full_workflow(self, mock_request):
+        # Настройка моков для каждого вызова
+        mock_request.side_effect = [
+            # Ответ для check_creds
+            WBResponse(success=True, data={"valid": True}, error=None),
+            # Ответ для get_products
+            WBResponse(success=True, data={"items": [{"id": "12345"}], "total": 1}, error=None),
+            # Ответ для get_orders
+            WBResponse(success=True, data={"items": [{"id": "54321"}], "total": 1}, error=None)
+        ]
 
-        # Test auth
+        # Тестируем check_creds
         auth_response = self.client.check_creds("test_token")
         self.assertTrue(auth_response.success)
 
-        # Test products
+        # Проверяем, что был вызван правильный endpoint
+        mock_request.assert_any_call('GET', '/v1/auth/test')
+
+        # Тестируем get_products
         products_response = self.client.get_products()
         self.assertTrue(products_response.success)
         self.assertEqual(len(products_response.data["items"]), 1)
 
-        # Test orders
+        # Тестируем get_orders
         orders_response = self.client.get_orders()
         self.assertTrue(orders_response.success)
         self.assertEqual(len(orders_response.data["items"]), 1)

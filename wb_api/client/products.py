@@ -30,7 +30,7 @@ class WBProductsClient(WBClientBase):
             if 'limit' in filter:
                 params['limit'] = filter['limit']
 
-        response = self._request('GET', '/v1/products', params=params)
+        response = self._request('GET', '/swagger/products', params=params)
 
         try:
             if isinstance(response, WBResponse):
@@ -54,7 +54,7 @@ class WBProductsClient(WBClientBase):
     @cache_api_call(ttl=3600)
     def get_prd(self, prd_id: str) -> WBResponse:
         """Получение информации о товаре"""
-        response = self._request('GET', f'/v1/products/{prd_id}')
+        response = self._request('GET', f'/swagger/products/{prd_id}')
         if isinstance(response, WBResponse):
             return response
 
@@ -79,7 +79,7 @@ class WBProductsClient(WBClientBase):
         try:
             # Преобразуем входные данные
             update_data = {k: v for k, v in data.items() if v is not None}
-            response = self._request('PATCH', f'/v1/products/{prd_id}', json=update_data)
+            response = self._request('PATCH', f'/swagger/products/{prd_id}', json=update_data)
 
             self._invalidate_cache(f'get_prd:{prd_id}')
             return WBResponse(
@@ -99,4 +99,4 @@ class WBProductsClient(WBClientBase):
     @cache_api_call(ttl=86400)  # 24 часа кэширования для комиссий
     def get_comission(self, prd_id: str) -> WBResponse:
         """Получение информации о комиссии для товара"""
-        return self._request('GET', f'/v1/products/{prd_id}/commission')
+        return self._request('GET', f'/swagger/products/{prd_id}/commission')

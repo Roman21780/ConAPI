@@ -137,5 +137,15 @@ INTERNAL_IPS = [
     '127.0.0.1',
 ]
 
-WB_API_URL = 'https://suppliers-api.wildberries.ru'
+WB_API_URL = 'https://dev.wildberries.ru'
+WB_PRODUCTS_ENDPOINT = '/swagger/products'         # Эндпоинт для товаров
+WB_ORDERS_ENDPOINT = '/v1/orders'             # Эндпоинт для заказов
+WB_CATEGORIES_ENDPOINT = '/v1/categories'     # Эндпоинт для категорий
 WB_API_TOKEN = "eyJhbGciOiJFUzI1NiIsImtpZCI6IjIwMjUwNDE3djEiLCJ0eXAiOiJKV1QifQ.eyJlbnQiOjEsImV4cCI6MTc2MTg5MzI5MywiaWQiOiIwMTk2OGQyZC04NjI0LTcxNGEtOTQ2OC1mODNkZDY1MDJiNmYiLCJpaWQiOjY0OTU3NDM1LCJvaWQiOjEzNDkyNzEsInMiOjAsInNpZCI6ImUxY2QzMmU4LWQwYTYtNDFiOC04MzkyLTQ0OGEzOTk3ODVjMiIsInQiOnRydWUsInVpZCI6NjQ5NTc0MzV9.AlVassO3PuDQtV7A-OrZitAN0chGrqonW_DIlux0D3ral4neInndIkX-Id_MAO2AHfpkwta97dRRAyg0a-82DA"
+
+
+# python manage.py shell
+# from wb_api.client.products import WBProductsClient
+# client = WBProductsClient()
+# response = client.get_prds()
+# print(response.success, response.data)  # Должно быть True и данные
